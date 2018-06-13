@@ -1,64 +1,71 @@
-Welcome to the AWS CodeStar sample web application
-==================================================
+faas-netes
+===========
 
-This sample code helps get you started with a simple Go web application deployed by AWS CloudFormation to AWS Lambda and Amazon API Gateway.
+[![Go Report Card](https://goreportcard.com/badge/github.com/openfaas/faas-netes)](https://goreportcard.com/report/github.com/openfaas/faas-netes) [![Build Status](https://travis-ci.org/openfaas/faas-netes.svg?branch=master)](https://travis-ci.org/openfaas/faas-netes)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenFaaS](https://img.shields.io/badge/openfaas-serverless-blue.svg)](https://www.openfaas.com)
 
-What's Here
------------
+This is a plugin to enable Kubernetes as an [OpenFaaS](https://github.com/openfaas/faas) backend. The existing CLI and UI are fully compatible. It also opens up the possibility for other plugins to be built for orchestration frameworks such as Nomad,  Mesos/Marathon or even a cloud-managed back-end such as Hyper.sh or Azure ACI.
 
-This sample includes:
+> OpenFaaS also runs well on managed Kubernetes services like AKS and GKE. See our list of tutorials in the documentation site for more.
 
-* README.md - this file
-* buildspec.yml - this file is used by AWS CodeBuild to package your
-  application for deployment to AWS Lambda
-* main.go - this file contains the sample Go code for the web application
-* main_test.go - this file contains unit tests for the sample Go code
-* template.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
-  by AWS CloudFormation to deploy your application to AWS Lambda and Amazon API
-  Gateway.
+**Watch a video demo from [TechFieldDay Extra at Dockercon](https://www.youtube.com/watch?v=C3agSKv2s_w&list=PLlIapFDp305AiwA17mUNtgi5-u23eHm5j&index=1)**
 
+[OpenFaaS](https://github.com/openfaas/faas) is an event-driven serverless framework for containers. Any container for Windows or Linux can be leveraged as a serverless function. OpenFaaS is quick and easy to deploy (less than 60 secs) and lets you avoid writing boiler-plate code.
 
-What Do I Do Next?
-------------------
+![Stack](https://camo.githubusercontent.com/08bc7c0c4f882ef5eadaed797388b27b1a3ca056/68747470733a2f2f7062732e7477696d672e636f6d2f6d656469612f4446726b46344e586f41414a774e322e6a7067)
 
-If you have checked out a local copy of your repository you can start making
-changes to the sample code.  We suggest making a small change to main.go first,
-so you can see how changes pushed to your project's repository are automatically
-picked up by your project pipeline and deployed to AWS Lambda and Amazon API Gateway.
-(You can watch the pipeline progress on your AWS CodeStar project dashboard.)
-Once you've seen how that works, start developing your own code, and have fun!
+In this README you'll find a technical overview and instructions for deploying FaaS on a Kubernetes cluster. (Docker Swarm is also supported in the main project)
 
-To run your test locally, go to the root directory of the sample code and
-run the `go test` command, which AWS CodeBuild also runs through your
-`buildspec.yml` file.
+* Serverless framework for containers
+* Native Kubernetes integrations (API and ecosystem)
+* Built-in UI
+* YAML templates & helm chart
+* Over 11k GitHub stars
+* Independent open-source project with over 90 authors/contributors
 
-To test your new code during the release process, modify the existing tests or
-add tests for any new packages you create. AWS CodeBuild will run the tests during
-the build stage of your project pipeline. You can find the test results in the
-AWS CodeBuild console.
+## Get started
 
-Learn more about AWS CodeBuild and how it builds and tests your application here:
-https://docs.aws.amazon.com/codebuild/latest/userguide/concepts.html
+* [Deploy on Kubernetes](https://docs.openfaas.com/deployment)
+* [Visit the website](https://www.openfaas.com)
+* [Join the community](https://docs.openfaas.com/community)
 
-Learn more about AWS Serverless Application Model (AWS SAM) and how it works here:
-https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md
+> Note: a CRD-based Kubernetes controller is also available for OpenFaaS in the incubator program - [faas-o6s](https://github.com/openfaas-incubator/faas-o6s/).
 
-AWS Lambda Developer Guide:
-https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html
+### How is this project different from others?
 
-Learn more about AWS CodeStar by reading the user guide, and post questions and
-comments about AWS CodeStar on our forum.
+* [Read an Introduction to OpenFaaS here](https://blog.alexellis.io/introducing-functions-as-a-service/).
 
-User Guide: http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
+## Reference guide
 
-Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
+### Configuration via Environmental variables
 
-What Should I Do Before Running My Project in Production?
-------------------
+FaaS-netes can be configured via environment variables.
 
-AWS recommends you review the security best practices recommended by the framework
-author of your selected sample application before running it in production. You
-should also regularly review and apply any available patches or associated security
-advisories for dependencies used within your application.
+| Option                 | Usage                                                                                          |
+|------------------------|------------------------------------------------------------------------------------------------|
+| `enable_function_readiness_probe` | Boolean - enable a readiness probe to test functions. Default: `true`               |
+| `write_timeout`        | HTTP timeout for writing a response body from your function (in seconds). Default: `8`         |
+| `read_timeout`         | HTTP timeout for reading the payload from the client caller (in seconds). Default: `8`         |
+| `image_pull_policy`    | Image pull policy for deployed functions (`Always`, `IfNotPresent`, `Never`.  Default: `Always` |
 
-Best Practices: https://docs.aws.amazon.com/codestar/latest/userguide/best-practices.html?icmpid=docs_acs_rm_sec
+### Readiness checking
+
+The readiness checking for functions assumes you are using our function watchdog which writes a .lock file in the default "tempdir" within a container. To see this in action you can delete the .lock file in a running Pod with `kubectl exec` and the function will be re-scheduled.
+
+### Namespaces
+
+By default all OpenFaaS functions and services are deployed to the `openfaas` and `openfaas-fn` namespaces. To alter the namespace use the `helm` chart.
+
+### Ingress
+
+To configure ingress see the `helm` chart. By default NodePorts are used. These are listed in the [deployment guide](https://docs.openfaas.com/deployment).
+
+### Image pull policy
+
+By default, deployed functions will use an [imagePullPolicy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) of `Always`, which ensures functions using static image tags are refreshed during an update.
+If this is not desired behavior, set the `image_pull_policy` environment variable to an alternative.  `IfNotPresent` is particularly useful when developing locally with minikube.
+In this case, you can set your local environment to [use minikube's docker](https://kubernetes.io/docs/getting-started-guides/minikube/#reusing-the-docker-daemon) so `faas-cli build` builds directly into minikube's image store.
+`faas-cli push` is unnecessary in this workflow - use `faas-cli build` then `faas-cli deploy`.
+
+Note: When set to `Never`, **only** local (or pulled) images will work.  When set to `IfNotPresent`, function deployments may not be updated when using static image tags.
